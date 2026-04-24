@@ -51,16 +51,37 @@
       border:1px solid var(--line);box-shadow:var(--soft);margin-bottom:12px
     }
     .topbar{
-      position:sticky;top:0;z-index:50;backdrop-filter:blur(18px);
-      background:rgba(255,255,255,.68);border-bottom:1px solid rgba(148,163,184,.38);
-      padding:10px 12px
+      position:sticky;
+      top:0;
+      z-index:50;
+      backdrop-filter:blur(18px);
+      background:rgba(255,255,255,.78);
+      border-bottom:1px solid rgba(148,163,184,.38);
+      padding:14px 12px 18px;
+      min-height:76px;
+      overflow:visible;
     }
-    .tabs{display:flex;gap:8px;overflow-x:auto;max-width:1320px;margin:0 auto}
+    .tabs{
+      display:flex;
+      gap:10px;
+      overflow-x:auto;
+      overflow-y:visible;
+      max-width:1320px;
+      margin:0 auto;
+      padding:8px 8px 14px;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:thin;
+    }
+    .tabs::-webkit-scrollbar{height:10px}
+    .tabs::-webkit-scrollbar-track{background:rgba(226,232,240,.9);border-radius:999px}
+    .tabs::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#2563eb,#7c3aed,#db2777);border-radius:999px}
     .tab{
-      border:1px solid rgba(255,255,255,.85);
+      flex:0 0 auto;
+      border:1px solid rgba(255,255,255,.86);
       color:#ffffff;
-      text-shadow:0 1px 2px rgba(0,0,0,.34);
-      padding:12px 16px;
+      text-shadow:0 1px 2px rgba(0,0,0,.35);
+      padding:13px 17px;
+      min-height:46px;
       border-radius:999px;
       white-space:nowrap;
       font-weight:1000;
@@ -68,8 +89,8 @@
       position:relative;
       overflow:hidden;
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.72),
-        inset 0 -10px 22px rgba(255,255,255,.12),
+        inset 0 1px 0 rgba(255,255,255,.75),
+        inset 0 -12px 22px rgba(255,255,255,.12),
         0 10px 24px rgba(15,23,42,.18);
       transition:.2s;
     }
@@ -81,7 +102,7 @@
       width:80%;
       height:38%;
       border-radius:999px;
-      background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,.08));
+      background:linear-gradient(180deg,rgba(255,255,255,.58),rgba(255,255,255,.08));
       pointer-events:none;
     }
     .tab:hover{transform:translateY(-2px) scale(1.02);filter:saturate(1.25) brightness(1.05)}
@@ -109,7 +130,7 @@
       background:linear-gradient(90deg,#60a5fa,#c084fc,#fb7185,#f59e0b)
     }
     .btn{
-      border:1px solid rgba(255,255,255,.82);
+      border:1px solid rgba(255,255,255,.84);
       border-radius:18px;
       padding:12px 16px;
       font-weight:1000;
@@ -119,7 +140,7 @@
       position:relative;
       overflow:hidden;
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.70),
+        inset 0 1px 0 rgba(255,255,255,.72),
         inset 0 -12px 24px rgba(255,255,255,.10),
         0 12px 26px rgba(15,23,42,.18);
       transition:.18s;
@@ -189,6 +210,43 @@
       cursor:pointer;
       box-shadow:0 8px 16px rgba(15,23,42,.18);
     }
+    .collectbtn.collected{
+      background:linear-gradient(135deg,#16a34a,#0f766e)!important;
+      cursor:default;
+      opacity:.92;
+    }
+    .collect-count{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:24px;
+      height:24px;
+      margin-left:6px;
+      border-radius:999px;
+      background:#fff;
+      color:#111827;
+      font-weight:1000;
+      text-shadow:none;
+      box-shadow:inset 0 0 0 1px rgba(15,23,42,.12);
+    }
+    .collected-toast{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      z-index:9999;
+      background:rgba(15,23,42,.92);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.35);
+      box-shadow:0 18px 45px rgba(15,23,42,.28);
+      border-radius:18px;
+      padding:14px 16px;
+      font-weight:900;
+      opacity:0;
+      transform:translateY(12px);
+      transition:.25s;
+      pointer-events:none;
+    }
+    .collected-toast.show{opacity:1;transform:translateY(0)}
     .missed{background:#fff7ed;border:1px solid #fed7aa;border-radius:18px;padding:12px;margin:8px 0}
     textarea{width:100%;min-height:120px;border-radius:18px;border:1px solid #cbd5e1;padding:14px;font:inherit;resize:vertical;background:white}
     .footer{text-align:center;color:#64748b;margin-top:34px;font-size:.9rem}
@@ -452,7 +510,8 @@ function shuffle(arr){
 function makeTabs(){
   document.getElementById('tabs').innerHTML = tabs.map(t => {
     const active = t.id === 'start' ? 'active' : '';
-    return '<button class="tab ' + active + '" style="background:linear-gradient(135deg,' + t.c + ',#ffffff33)" onclick="showPanel(\'' + t.id + '\')">' + t.label + '</button>';
+    const counter = t.id === 'flashcards' ? '<span class="collect-count">0</span>' : '';
+    return '<button class="tab ' + active + '" style="background:linear-gradient(135deg,' + t.c + ',#ffffff33)" onclick="showPanel(\'' + t.id + '\')">' + t.label + counter + '</button>';
   }).join('');
 }
 
@@ -531,10 +590,49 @@ function updateScore(){
   document.querySelectorAll('.scorefill').forEach(x => x.style.width = pct + '%');
 }
 
-function addCard(title, front, back){
-  collection.push({title:title, front:front, back:back});
+function updateCollectedCounter(){
+  document.querySelectorAll('.collect-count').forEach(el => {
+    el.textContent = collection.length;
+  });
+}
+
+function showCollectedToast(message){
+  let toast = document.getElementById('collectedToast');
+  if(!toast){
+    toast = document.createElement('div');
+    toast.id = 'collectedToast';
+    toast.className = 'collected-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 1400);
+}
+
+function addCard(btn, title, front, back){
+  // Backward compatibility: if called as addCard(title, front, back)
+  if(!(btn && btn.tagName)){
+    back = front;
+    front = title;
+    title = btn;
+    btn = null;
+  }
+
+  const exists = collection.some(c => c.title === title && c.front === front && c.back === back);
+  if(!exists){
+    collection.push({title:title, front:front, back:back});
+  }
+
+  if(btn){
+    btn.textContent = 'Collected ✓';
+    btn.classList.add('collected');
+    btn.disabled = true;
+  }
+
+  updateCollectedCounter();
+  renderFlashcards();
+  showCollectedToast('Collected ✓ Added to your learning cards');
   sound(true);
-  alert('Added to your collected learning cards.');
 }
 
 function renderStart(){
@@ -569,7 +667,7 @@ function renderVocab(){
       '<div class="bigword">' + escapeHTML(v[0]) + '</div>' +
       '<p>' + escapeHTML(v[1]) + '</p>' +
       '<p class="mini"><b>Example:</b> ' + escapeHTML(v[2]) + '</p>' +
-      '<button class="btn" onclick="addCard(' + JSON.stringify(v[0]) + ',' + JSON.stringify(v[1]) + ',' + JSON.stringify(v[2]) + ')">Collect</button>' +
+      '<button class="btn collectbtn" onclick="addCard(this,' + JSON.stringify(v[0]) + ',' + JSON.stringify(v[1]) + ',' + JSON.stringify(v[2]) + ')">Collect</button>' +
     '</div>'
   ).join('');
 
@@ -607,7 +705,7 @@ function renderSuffix(){
       '<p><b>' + escapeHTML(s[1]) + '</b></p>' +
       '<p>' + escapeHTML(s[2]) + '</p>' +
       '<p class="mini">' + escapeHTML(s[3]) + '</p>' +
-      '<button class="btn" onclick="addCard(' + JSON.stringify(s[0]) + ',' + JSON.stringify(s[1] + ': ' + s[2]) + ',' + JSON.stringify(s[3]) + ')">Collect</button>' +
+      '<button class="btn collectbtn" onclick="addCard(this,' + JSON.stringify(s[0]) + ',' + JSON.stringify(s[1] + ': ' + s[2]) + ',' + JSON.stringify(s[3]) + ')">Collect</button>' +
     '</div>'
   ).join('');
 
@@ -718,7 +816,7 @@ function renderClass(id){
       '<p><b>What it does:</b> ' + escapeHTML(i[1]) + '</p>' +
       '<p><b>Examples:</b> ' + escapeHTML(i[2]) + '</p>' +
       '<p class="mini"><b>Watch:</b> ' + escapeHTML(i[3]) + '</p>' +
-      '<button class="btn" onclick="addCard(' + JSON.stringify(i[0]) + ',' + JSON.stringify(i[1] + ' Examples: ' + i[2]) + ',' + JSON.stringify(i[3]) + ')">Collect</button>' +
+      '<button class="btn collectbtn" onclick="addCard(this,' + JSON.stringify(i[0]) + ',' + JSON.stringify(i[1] + ' Examples: ' + i[2]) + ',' + JSON.stringify(i[3]) + ')">Collect</button>' +
     '</div>'
   ).join('');
 
@@ -795,6 +893,12 @@ function renderFlashcards(){
 
 function clearCards(){
   collection = [];
+  document.querySelectorAll('.collectbtn').forEach(btn => {
+    btn.textContent = 'Collect';
+    btn.classList.remove('collected');
+    btn.disabled = false;
+  });
+  updateCollectedCounter();
   renderFlashcards();
   sound(false);
 }
@@ -911,6 +1015,7 @@ function boot(){
   renderFlashcards();
   renderReview();
   updateScore();
+  updateCollectedCounter();
   setTimeout(function(){
     if(document.getElementById('vol')) calcBP();
   }, 100);
